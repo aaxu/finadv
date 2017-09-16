@@ -1,17 +1,23 @@
 package com.example.aaron.hackintoit;
 
+import android.app.ActivityManager;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.RemoteInput;
+import android.app.job.JobScheduler;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.preference.PreferenceManager;
+import android.app.job.JobInfo;
+
+import android.content.ComponentName;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -40,18 +46,19 @@ public class MainActivity extends AppCompatActivity {
     private EditText editText;
     private TextView nonNumberError;
     private TextView moneyLeft;
-    private Context context;
-
+    SharedPreferences.Editor data;
 
     private static final String TAG = "tag";
-    private PlaceDetectionClient mPlaceDetectionClient;
+    private static PlaceDetectionClient mPlaceDetectionClient;
     private static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
     private boolean mLocationPermissionGranted;
 
     // Used for selecting the current place.
-    private String mLikelyPlaceNames;
+    private static String location;
 
-    private TextView loc;
+    private int jobId = 0;
+    private JobScheduler jobScheduler;
+    private Context context;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,12 +78,53 @@ public class MainActivity extends AppCompatActivity {
 
         moneyLeft = (TextView) findViewById(R.id.money_left);
         context = this;
+        SharedPreferences preferences =
+                PreferenceManager.getDefaultSharedPreferences(this);
+        data = preferences.edit();
+        moneyLeft.setText(preferences.getString("moneyLeft", "$0"));
+        // TODO: Currently does not save color.
+
+        getLocationPermission();
+        mPlaceDetectionClient = Places.getPlaceDetectionClient(this, null);
+        jobScheduler = (JobScheduler) getSystemService( Context.JOB_SCHEDULER_SERVICE );
+
+        JobInfo.Builder builder = new JobInfo.Builder(jobId++, new ComponentName( getPackageName(), MyJobService.class.getName()) );
+
+        long time = 10000;
+        builder.setPeriodic(time);
+        jobScheduler.schedule(builder.build());
+
+
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        notificationManager.cancelAll();
+        try {
+            Float moneyRemaining = Float.parseFloat(moneyLeft.getText().toString().replaceAll("\\$", ""));
+//                No support for android versions below Nougat. Can't direct reply
+//                moneyRemaining -= Float.parseFloat(quickReplyResult.toString().replaceAll("\\$", ""));
+            if (moneyRemaining < 0) {
+                moneyLeft.setTextColor(ContextCompat.getColor(context, R.color.negative)); //holo_red_dark
+                moneyLeft.setText("-$" + String.format("%.2f", Math.abs(moneyRemaining)));
+            } else {
+                moneyLeft.setText("$" + String.format("%.2f", moneyRemaining));
+                moneyLeft.setTextColor(ContextCompat.getColor(context, R.color.positive)); //holo_red_dark
+            }
+        } catch (NumberFormatException e) {
+            moneyLeft.setText("ERROR");
+        }
+
+        addCost("Are you spending again? How much did you spend...");
     }
 
     private void createNotification() {
-        PendingIntent pi = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), 0);
+        Intent newInt = new Intent(this, MainActivity.class);
+        newInt.putExtra("CALLED", true);
+        PendingIntent pi = PendingIntent.getActivity(this, 0, newInt, PendingIntent.FLAG_UPDATE_CURRENT);
         Notification.Action action = new Notification.Action.Builder(
-                R.drawable.money, "Reply", pi)
+                null, "Reply", pi)
                 .addRemoteInput(new RemoteInput.Builder("quick_reply")
                         .setLabel("Quick reply").build())
                 .build();
@@ -85,10 +133,11 @@ public class MainActivity extends AppCompatActivity {
                 .setTicker(getResources().getString(R.string.app_name))
                 .setSmallIcon(android.R.drawable.ic_menu_report_image)
                 .setContentTitle(getResources().getString(R.string.app_name))
-                .setContentText(getResources().getString(R.string.app_name))
+                .setContentText("Are you spending again? How much did you spend?")
                 .setContentIntent(pi)
                 .setAutoCancel(true)
                 .addAction(action)
+                .setAutoCancel(true)
                 .build();
         notification.defaults |= Notification.DEFAULT_SOUND;
 
@@ -98,7 +147,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private PopupWindow pw;
-    protected void addCost(View v) {
+    protected void clicked_add_cost(View v) {
+        addCost(" ");
+    }
+
+    private void addCost(String initialText) {
         try {
             // We need to get the instance of the LayoutInflater
             LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -106,15 +159,18 @@ public class MainActivity extends AppCompatActivity {
                     (ViewGroup) findViewById(R.id.popup_1));
             editText = layout.findViewById(R.id.money_input);
             nonNumberError = layout.findViewById(R.id.number_format_error_message);
-            pw = new PopupWindow(layout, 1250, 750, true);
+            pw = new PopupWindow(layout, 1500, 1000, true);
             pw.showAtLocation(layout, Gravity.CENTER, 0, 0);
             editText.setHint("Amount spent");
             close = layout.findViewById(R.id.update_money);
             close.setText("Update Money");
+            nonNumberError.setText(initialText);
             close.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
                     updateMoney(context);
+                    data.putString("moneyLeft", moneyLeft.getText().toString());
+                    data.commit();
                 }
             });
         } catch (Exception e) {
@@ -139,6 +195,8 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onClick(View view) {
                     setMoney(context);
+                    data.putString("moneyLeft", moneyLeft.getText().toString());
+                    data.commit();
                 }
             });
         } catch (Exception e) {
@@ -165,41 +223,52 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void getLoc(View view) {
-        System.out.println("ASD");
+    @Override
+    protected void onStop() {
+        stopService(new Intent(this, MyJobService.class));
+        super.onStop();
+    }
 
-        mPlaceDetectionClient = Places.getPlaceDetectionClient(this, null);
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Intent startServiceIntent = new Intent(this, MyJobService.class);
+//        Messenger messengerIncoming = new Messenger(mHandler);
+//        startServiceIntent.putExtra(MESSENGER_INTENT_KEY, messengerIncoming);
+        startService(startServiceIntent);
+    }
 
-        if (!mLocationPermissionGranted) {
-            getLocationPermission();
+    private boolean isMyServiceRunning() {
+        ActivityManager manager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if ("com.example.aaron.hackintoit.MyJobService".equals(service.service.getClassName())) {
+                return true;
+            }
         }
+        return false;
+    }
 
-        if (mLocationPermissionGranted) {
-            // Get the likely places - that is, the businesses and other points of interest that
-            // are the best match for the device's current location.
-            @SuppressWarnings("MissingPermission") final
-            Task<PlaceLikelihoodBufferResponse> placeResult =
-                    mPlaceDetectionClient.getCurrentPlace(null);
-            placeResult.addOnCompleteListener
-                    (new OnCompleteListener<PlaceLikelihoodBufferResponse>() {
-                        @Override
-                        public void onComplete(@NonNull Task<PlaceLikelihoodBufferResponse> task) {
-                            if (task.isSuccessful() && task.getResult() != null) {
-                                System.out.println("HJSDFHLKJSDF");
+    public static String getLoc() {
+        @SuppressWarnings("MissingPermission") final
+        Task<PlaceLikelihoodBufferResponse> placeResult =
+                mPlaceDetectionClient.getCurrentPlace(null);
+        placeResult.addOnCompleteListener
+                (new OnCompleteListener<PlaceLikelihoodBufferResponse>() {
+                    @Override
+                    public void onComplete(@NonNull Task<PlaceLikelihoodBufferResponse> task) {
+                        if (task.isSuccessful() && task.getResult() != null) {
 
-                                PlaceLikelihood place = task.getResult().get(0);
+                            PlaceLikelihood place = task.getResult().get(0);
 
-                                mLikelyPlaceNames = (String) place.getPlace().getName();
+                            location = (String) place.getPlace().getName();
 
-                                loc = (TextView)findViewById(R.id.money_left);
-                                loc.setText(mLikelyPlaceNames);
-
-                            } else {
-                                Log.e(TAG, "Exception: %s", task.getException());
-                            }
+                        } else {
+                            Log.e(TAG, "Exception: %s", task.getException());
+                            location = "";
                         }
-                    });
-        }
+                    }
+                });
+        return location;
 
     }
 
@@ -238,4 +307,8 @@ public class MainActivity extends AppCompatActivity {
                     PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
         }
     }
+
+
 }
+
+
