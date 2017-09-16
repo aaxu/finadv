@@ -1,9 +1,11 @@
 package com.example.aaron.hackintoit;
 
+import android.app.ActivityManager;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.RemoteInput;
+import android.app.job.JobScheduler;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -12,8 +14,6 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.preference.PreferenceManager;
 import android.app.job.JobInfo;
-
-import android.app.job.JobScheduler;
 
 import android.content.ComponentName;
 import android.support.annotation.NonNull;
@@ -55,12 +55,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Used for selecting the current place.
     private static String location;
-    private String prevLocation;
-    private long start;
-    private int timeUntilPush;
-    private TextView requestLog;
 
-    private ComponentName serviceComponent;
     private int jobId = 0;
     private JobScheduler jobScheduler;
     private Context context;
@@ -88,43 +83,48 @@ public class MainActivity extends AppCompatActivity {
         data = preferences.edit();
         moneyLeft.setText(preferences.getString("moneyLeft", "$0"));
         // TODO: Currently does not save color.
-        NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        notificationManager.cancelAll();
-        Intent intent = getIntent();
-        Bundle results = RemoteInput.getResultsFromIntent(intent);
-        if (results != null) {
-            CharSequence quickReplyResult = results.getCharSequence("quick_reply");
-            try {
-                Float moneyRemaining = Float.parseFloat(moneyLeft.getText().toString().replaceAll("\\$", ""));
-                moneyRemaining -= Float.parseFloat(quickReplyResult.toString().replaceAll("\\$", ""));
-                if (moneyRemaining < 0) {
-                    moneyLeft.setTextColor(ContextCompat.getColor(context, R.color.negative)); //holo_red_dark
-                    moneyLeft.setText("-$" + String.format("%.2f", Math.abs(moneyRemaining)));
-                } else {
-                    moneyLeft.setText("$" + String.format("%.2f", moneyRemaining));
-                    moneyLeft.setTextColor(ContextCompat.getColor(context, R.color.positive)); //holo_red_dark
-                }
-            } catch (NumberFormatException e) {
-                moneyLeft.setText("ERROR");
-            }
-        }
+
         getLocationPermission();
         mPlaceDetectionClient = Places.getPlaceDetectionClient(this, null);
         jobScheduler = (JobScheduler) getSystemService( Context.JOB_SCHEDULER_SERVICE );
 
-        JobInfo.Builder builder = new JobInfo.Builder(jobId++, new ComponentName( getPackageName(), MyJobService.class.getName() ) );
+        JobInfo.Builder builder = new JobInfo.Builder(jobId++, new ComponentName( getPackageName(), MyJobService.class.getName()) );
 
-        builder.setPeriodic(3000);
-
+        long time = 10000;
+        builder.setPeriodic(time);
         jobScheduler.schedule(builder.build());
 
 
     }
 
+    @Override
+    protected void onNewIntent(Intent intent) {
+        NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        notificationManager.cancelAll();
+        try {
+            Float moneyRemaining = Float.parseFloat(moneyLeft.getText().toString().replaceAll("\\$", ""));
+//                No support for android versions below Nougat. Can't direct reply
+//                moneyRemaining -= Float.parseFloat(quickReplyResult.toString().replaceAll("\\$", ""));
+            if (moneyRemaining < 0) {
+                moneyLeft.setTextColor(ContextCompat.getColor(context, R.color.negative)); //holo_red_dark
+                moneyLeft.setText("-$" + String.format("%.2f", Math.abs(moneyRemaining)));
+            } else {
+                moneyLeft.setText("$" + String.format("%.2f", moneyRemaining));
+                moneyLeft.setTextColor(ContextCompat.getColor(context, R.color.positive)); //holo_red_dark
+            }
+        } catch (NumberFormatException e) {
+            moneyLeft.setText("ERROR");
+        }
+
+        addCost("Are you spending again? How much did you spend...");
+    }
+
     private void createNotification() {
-        PendingIntent pi = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), 0);
+        Intent newInt = new Intent(this, MainActivity.class);
+        newInt.putExtra("CALLED", true);
+        PendingIntent pi = PendingIntent.getActivity(this, 0, newInt, PendingIntent.FLAG_UPDATE_CURRENT);
         Notification.Action action = new Notification.Action.Builder(
-                R.drawable.money, "Reply", pi)
+                null, "Reply", pi)
                 .addRemoteInput(new RemoteInput.Builder("quick_reply")
                         .setLabel("Quick reply").build())
                 .build();
@@ -147,7 +147,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private PopupWindow pw;
-    protected void addCost(View v) {
+    protected void clicked_add_cost(View v) {
+        addCost(" ");
+    }
+
+    private void addCost(String initialText) {
         try {
             // We need to get the instance of the LayoutInflater
             LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -155,11 +159,12 @@ public class MainActivity extends AppCompatActivity {
                     (ViewGroup) findViewById(R.id.popup_1));
             editText = layout.findViewById(R.id.money_input);
             nonNumberError = layout.findViewById(R.id.number_format_error_message);
-            pw = new PopupWindow(layout, 1250, 750, true);
+            pw = new PopupWindow(layout, 1500, 1000, true);
             pw.showAtLocation(layout, Gravity.CENTER, 0, 0);
             editText.setHint("Amount spent");
             close = layout.findViewById(R.id.update_money);
             close.setText("Update Money");
+            nonNumberError.setText(initialText);
             close.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
@@ -233,71 +238,36 @@ public class MainActivity extends AppCompatActivity {
         startService(startServiceIntent);
     }
 
-    public void scheduleJob() {
-
-
-//        String delay = mDelayEditText.getText().toString();
-//        if (!TextUtils.isEmpty(delay)) {
-//            builder.setMinimumLatency(Long.valueOf(delay) * 1000);
-//        }
-//        String deadline = mDeadlineEditText.getText().toString();
-//        if (!TextUtils.isEmpty(deadline)) {
-//            builder.setOverrideDeadline(Long.valueOf(deadline) * 1000);
-//        }
-//        boolean requiresUnmetered = mWiFiConnectivityRadioButton.isChecked();
-//        boolean requiresAnyConnectivity = mAnyConnectivityRadioButton.isChecked();
-//        if (requiresUnmetered) {
-//            builder.setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED);
-//        } else if (requiresAnyConnectivity) {
-//            builder.setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY);
-//        }
-//        builder.setRequiresDeviceIdle(mRequiresIdleCheckbox.isChecked());
-//        builder.setRequiresCharging(mRequiresChargingCheckBox.isChecked());
-
-        // Extras, work duration.
-//        PersistableBundle extras = new PersistableBundle();
-//        String workDuration = mDurationTimeEditText.getText().toString();
-//        if (TextUtils.isEmpty(workDuration)) {
-//            workDuration = "1";
-//        }
-//        extras.putLong(WORK_DURATION_KEY, Long.valueOf(workDuration) * 1000);
-
-//        builder.setExtras(extras);
-
-        // Schedule job
-//        Log.d(TAG, "Scheduling job");
+    private boolean isMyServiceRunning() {
+        ActivityManager manager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if ("com.example.aaron.hackintoit.MyJobService".equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static String getLoc() {
+        @SuppressWarnings("MissingPermission") final
+        Task<PlaceLikelihoodBufferResponse> placeResult =
+                mPlaceDetectionClient.getCurrentPlace(null);
+        placeResult.addOnCompleteListener
+                (new OnCompleteListener<PlaceLikelihoodBufferResponse>() {
+                    @Override
+                    public void onComplete(@NonNull Task<PlaceLikelihoodBufferResponse> task) {
+                        if (task.isSuccessful() && task.getResult() != null) {
 
+                            PlaceLikelihood place = task.getResult().get(0);
 
-//        if (!mLocationPermissionGranted) {
-//            getLocationPermission();
-//        }
+                            location = (String) place.getPlace().getName();
 
-//        if (mLocationPermissionGranted) {
-            // Get the likely places - that is, the businesses and other points of interest that
-            // are the best match for the device's current location.
-            @SuppressWarnings("MissingPermission") final
-            Task<PlaceLikelihoodBufferResponse> placeResult =
-                    mPlaceDetectionClient.getCurrentPlace(null);
-            placeResult.addOnCompleteListener
-                    (new OnCompleteListener<PlaceLikelihoodBufferResponse>() {
-                        @Override
-                        public void onComplete(@NonNull Task<PlaceLikelihoodBufferResponse> task) {
-                            if (task.isSuccessful() && task.getResult() != null) {
-
-                                PlaceLikelihood place = task.getResult().get(0);
-
-                                location = (String) place.getPlace().getName();
-
-                            } else {
-                                Log.e(TAG, "Exception: %s", task.getException());
-                                location = "";
-                            }
+                        } else {
+                            Log.e(TAG, "Exception: %s", task.getException());
+                            location = "";
                         }
-                    });
-//        }
+                    }
+                });
         return location;
 
     }
