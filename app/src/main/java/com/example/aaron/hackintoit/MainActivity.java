@@ -95,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
 
         JobInfo.Builder builder = new JobInfo.Builder(jobId++, new ComponentName( getPackageName(), MyJobService.class.getName()) );
 
-        long time = 10000;
+        long time = 60000; //60 seconds for the demo. Should be around 5-10 minutes ideally.
         builder.setPeriodic(time);
         jobScheduler.schedule(builder.build());
 
