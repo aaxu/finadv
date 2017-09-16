@@ -32,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText editText;
     private TextView nonNumberError;
     private TextView moneyLeft;
+    private Context context;
 
 
     private static final String TAG = "tag";
@@ -61,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
         setSupportActionBar(myToolbar);
 
         moneyLeft = (TextView) findViewById(R.id.money_left);
+        context = this;
     }
 
     private PopupWindow pw;
@@ -74,13 +76,13 @@ public class MainActivity extends AppCompatActivity {
             nonNumberError = layout.findViewById(R.id.number_format_error_message);
             pw = new PopupWindow(layout, 1250, 750, true);
             pw.showAtLocation(layout, Gravity.CENTER, 0, 0);
-            close.setText("Update Money");
             editText.setHint("Amount spent");
             close = layout.findViewById(R.id.update_money);
+            close.setText("Update Money");
             close.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    updateMoney(view);
+                    updateMoney(context);
                 }
             });
         } catch (Exception e) {
@@ -104,7 +106,7 @@ public class MainActivity extends AppCompatActivity {
             close.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    setMoney();
+                    setMoney(context);
                 }
             });
         } catch (Exception e) {
@@ -112,13 +114,16 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void setMoney() {
+    private void setMoney(Context context) {
         try {
             float newMoney = Float.parseFloat(editText.getText().toString().replaceAll("\\$", ""));
             if (newMoney < 0) {
                 moneyLeft.setText("-$" + String.format("%.2f", Math.abs(newMoney)));
+                moneyLeft.setTextColor(ContextCompat.getColor(context, R.color.negative)); //holo_red_dark
             } else {
                 moneyLeft.setText("$" + String.format("%.2f", newMoney));
+                moneyLeft.setTextColor(ContextCompat.getColor(context, R.color.positive)); //holo_red_dark
+
             }
             nonNumberError.setText(" ");
             pw.dismiss();
@@ -165,14 +170,16 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void updateMoney(View view) {
+    private void updateMoney(Context context) {
         try {
             Float moneyRemaining = Float.parseFloat(moneyLeft.getText().toString().replaceAll("\\$", ""));
             moneyRemaining -= Float.parseFloat(editText.getText().toString().replaceAll("\\$", ""));
             if (moneyRemaining < 0) {
+                moneyLeft.setTextColor(ContextCompat.getColor(context, R.color.negative)); //holo_red_dark
                 moneyLeft.setText("-$" + String.format("%.2f", Math.abs(moneyRemaining)));
             } else {
                 moneyLeft.setText("$" + String.format("%.2f", moneyRemaining));
+                moneyLeft.setTextColor(ContextCompat.getColor(context, R.color.positive)); //holo_red_dark
             }
             nonNumberError.setText(" ");
             pw.dismiss();
