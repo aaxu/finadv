@@ -6,9 +6,11 @@ import android.app.PendingIntent;
 import android.app.RemoteInput;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
@@ -41,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView nonNumberError;
     private TextView moneyLeft;
     private Context context;
-
+    SharedPreferences.Editor data;
 
     private static final String TAG = "tag";
     private PlaceDetectionClient mPlaceDetectionClient;
@@ -71,6 +73,32 @@ public class MainActivity extends AppCompatActivity {
 
         moneyLeft = (TextView) findViewById(R.id.money_left);
         context = this;
+        SharedPreferences preferences =
+                PreferenceManager.getDefaultSharedPreferences(this);
+        data = preferences.edit();
+        moneyLeft.setText(preferences.getString("moneyLeft", "$0"));
+        // TODO: Currently does not save color.
+        NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        notificationManager.cancelAll();
+        Intent intent = getIntent();
+        Bundle results = RemoteInput.getResultsFromIntent(intent);
+        if (results != null) {
+            CharSequence quickReplyResult = results.getCharSequence("quick_reply");
+            try {
+                Float moneyRemaining = Float.parseFloat(moneyLeft.getText().toString().replaceAll("\\$", ""));
+                moneyRemaining -= Float.parseFloat(quickReplyResult.toString().replaceAll("\\$", ""));
+                if (moneyRemaining < 0) {
+                    moneyLeft.setTextColor(ContextCompat.getColor(context, R.color.negative)); //holo_red_dark
+                    moneyLeft.setText("-$" + String.format("%.2f", Math.abs(moneyRemaining)));
+                } else {
+                    moneyLeft.setText("$" + String.format("%.2f", moneyRemaining));
+                    moneyLeft.setTextColor(ContextCompat.getColor(context, R.color.positive)); //holo_red_dark
+                }
+            } catch (NumberFormatException e) {
+                moneyLeft.setText("ERROR");
+            }
+        }
+
     }
 
     private void createNotification() {
@@ -85,10 +113,11 @@ public class MainActivity extends AppCompatActivity {
                 .setTicker(getResources().getString(R.string.app_name))
                 .setSmallIcon(android.R.drawable.ic_menu_report_image)
                 .setContentTitle(getResources().getString(R.string.app_name))
-                .setContentText(getResources().getString(R.string.app_name))
+                .setContentText("Are you spending again? How much did you spend?")
                 .setContentIntent(pi)
                 .setAutoCancel(true)
                 .addAction(action)
+                .setAutoCancel(true)
                 .build();
         notification.defaults |= Notification.DEFAULT_SOUND;
 
@@ -115,6 +144,8 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onClick(View view) {
                     updateMoney(context);
+                    data.putString("moneyLeft", moneyLeft.getText().toString());
+                    data.commit();
                 }
             });
         } catch (Exception e) {
@@ -139,6 +170,8 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onClick(View view) {
                     setMoney(context);
+                    data.putString("moneyLeft", moneyLeft.getText().toString());
+                    data.commit();
                 }
             });
         } catch (Exception e) {
