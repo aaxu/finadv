@@ -32,6 +32,16 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyDszj6dM3Vgt2EYQW5Af2ZvNXAVWE5PqRg" />
 
+        <!--<service-->
+            <!--android:name=".TestJobService"-->
+            <!--android:label="Word service"-->
+            <!--android:permission="android.permission.BIND_JOB_SERVICE" >-->
+
+        <!--</service>-->
+        <service android:name="com.example.aaron.hackintoit.MyJobService"
+            android:permission="android.permission.BIND_JOB_SERVICE"
+            android:exported="true"/>
+
         <!--<activity-->
             <!--android:name="com.example.aaron.hackintoit.CurrLocationActivity"-->
             <!--android:label="@string/title_activity_location">-->
