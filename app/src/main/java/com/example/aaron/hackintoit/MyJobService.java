@@ -1,8 +1,14 @@
 package com.example.aaron.hackintoit;
 
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.RemoteInput;
 import android.app.job.JobParameters;
 import android.app.job.JobService;
 import android.content.Intent;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
 import android.widget.Toast;
@@ -51,11 +57,39 @@ public class MyJobService extends JobService {
             Toast.makeText( getApplicationContext(),
                     "You've been in " + location + " for a while. Reminder that your spending goal is blank", Toast.LENGTH_SHORT )
                     .show();
+            createNotification();
             jobFinished( (JobParameters) msg.obj, false );
             return true;
         }
 
     } );
+
+    public void createNotification() {
+        Intent newInt = new Intent(this, MainActivity.class);
+        newInt.putExtra("CALLED", true);
+        PendingIntent pi = PendingIntent.getActivity(this, 0, newInt, PendingIntent.FLAG_UPDATE_CURRENT);
+        Notification.Action action = new Notification.Action.Builder(
+                null, "Reply", pi)
+                .addRemoteInput(new RemoteInput.Builder("quick_reply")
+                        .setLabel("Quick reply").build())
+                .build();
+        Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        Notification notification = new Notification.Builder(this)
+                .setTicker(getResources().getString(R.string.app_name))
+                .setSmallIcon(android.R.drawable.ic_menu_report_image)
+                .setContentTitle(getResources().getString(R.string.app_name))
+                .setContentText("Are you spending again? How much did you spend?")
+                .setContentIntent(pi)
+                .setAutoCancel(true)
+                .addAction(action)
+                .setAutoCancel(true)
+                .build();
+        notification.defaults |= Notification.DEFAULT_SOUND;
+
+
+        NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        notificationManager.notify(0, notification);
+    }
 
     @Override
     public boolean onStopJob(JobParameters params) {
