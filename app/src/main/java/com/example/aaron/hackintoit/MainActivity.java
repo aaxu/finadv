@@ -54,12 +54,12 @@ public class MainActivity extends AppCompatActivity {
     private boolean mLocationPermissionGranted;
 
     // Used for selecting the current place.
-    private static String location;
 
     private int jobId = 0;
     private JobScheduler jobScheduler;
     private Context context;
-
+    public static String location;
+    public static String prevLocation;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -235,7 +235,15 @@ public class MainActivity extends AppCompatActivity {
                             PlaceLikelihood place = task.getResult().get(0);
 
                             location = (String) place.getPlace().getName();
-
+                            // Use to determine if the person changed locations
+                            // so we don't spam them when they're at the same place.
+                            if (location != prevLocation) {
+                                MyJobService.sound = false;
+                                MyJobService.vibrate = false;
+                            } else {
+                                MyJobService.sound = true;
+                                MyJobService.vibrate = true;
+                            }
                         } else {
                             Log.e(TAG, "Exception: %s", task.getException());
                             location = "";

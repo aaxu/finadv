@@ -50,15 +50,15 @@
         android:layout_centerHorizontal="true"
         android:onClick="set_money_for_week"/>
 
-    <Button
-        android:id="@+id/loc"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:onClick="getLoc"
-        android:text="Get Location"
-        android:layout_centerHorizontal="true"
-        android:layout_below="@+id/set_money_button"/>
+    <!--<Button-->
+        <!--android:id="@+id/loc"-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:layout_marginTop="10dp"-->
+        <!--android:onClick="getLoc"-->
+        <!--android:text="Get Location"-->
+        <!--android:layout_centerHorizontal="true"-->
+        <!--android:layout_below="@+id/set_money_button"/>-->
 
 
 </android.widget.RelativeLayout>

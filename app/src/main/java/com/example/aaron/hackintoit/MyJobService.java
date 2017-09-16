@@ -13,6 +13,8 @@ import android.os.Handler;
 import android.os.Message;
 import android.widget.Toast;
 
+import java.security.KeyStore;
+
 import static com.example.aaron.hackintoit.MainActivity.getLoc;
 
 /**
@@ -24,6 +26,8 @@ public class MyJobService extends JobService {
     private String location;
     private String prevLocation;
     private int count = 0;
+    public static boolean vibrate = true;
+    public static boolean sound = true;
 //    private MainActivity ma = new MainActivity();
 
     @Override
@@ -54,9 +58,9 @@ public class MyJobService extends JobService {
 //
             String location = getLoc();
             System.out.println(location);
-            Toast.makeText( getApplicationContext(),
-                    "You've been in " + location + " for a while. Reminder that your spending goal is blank", Toast.LENGTH_SHORT )
-                    .show();
+//            Toast.makeText( getApplicationContext(),
+//                    "You've been in " + location + " for a while. Reminder that your spending goal is blank", Toast.LENGTH_SHORT )
+//                    .show();
             createNotification();
             jobFinished( (JobParameters) msg.obj, false );
             return true;
@@ -74,17 +78,33 @@ public class MyJobService extends JobService {
                         .setLabel("Quick reply").build())
                 .build();
         Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-        Notification notification = new Notification.Builder(this)
-                .setTicker(getResources().getString(R.string.app_name))
-                .setSmallIcon(android.R.drawable.ic_menu_report_image)
-                .setContentTitle(getResources().getString(R.string.app_name))
-                .setContentText("Are you spending again? How much did you spend?")
-                .setContentIntent(pi)
-                .setAutoCancel(true)
-                .addAction(action)
-                .setAutoCancel(true)
-                .build();
-        notification.defaults |= Notification.DEFAULT_SOUND;
+        Notification notification;
+        if (sound) {
+            notification = new Notification.Builder(this)
+                    .setTicker(getResources().getString(R.string.app_name))
+                    .setSmallIcon(android.R.drawable.ic_menu_report_image)
+                    .setContentTitle(getResources().getString(R.string.app_name))
+                    .setContentText("Are you spending again? How much did you spend?")
+                    .setContentIntent(pi)
+                    .setAutoCancel(true)
+                    .addAction(action)
+                    .setAutoCancel(true)
+                    .setVibrate(new long[]{2000, 2000})
+                    .build();
+            notification.defaults |= Notification.DEFAULT_SOUND;
+        } else {
+            notification = new Notification.Builder(this)
+                    .setTicker(getResources().getString(R.string.app_name))
+                    .setSmallIcon(android.R.drawable.ic_menu_report_image)
+                    .setContentTitle(getResources().getString(R.string.app_name))
+                    .setContentText("Are you spending again? How much did you spend?")
+                    .setContentIntent(pi)
+                    .setAutoCancel(true)
+                    .addAction(action)
+                    .setAutoCancel(true)
+                    .build();
+        }
+
 
 
         NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
