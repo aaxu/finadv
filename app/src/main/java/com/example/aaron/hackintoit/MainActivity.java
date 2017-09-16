@@ -23,7 +23,7 @@ import com.google.android.gms.tasks.Task;
 public class MainActivity extends AppCompatActivity {
 
 
-    private static final String TAG = CurrLocationActivity.class.getSimpleName();
+    private static final String TAG = "tag";
     private PlaceDetectionClient mPlaceDetectionClient;
     private static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
     private boolean mLocationPermissionGranted;
