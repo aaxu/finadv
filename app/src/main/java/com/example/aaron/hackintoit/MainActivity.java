@@ -30,10 +30,8 @@ public class MainActivity extends AppCompatActivity {
         this.setContentView(R.layout.activity_main);
 
         //Set the toolbar to show on the screen
-        Toolbar myToolbar = (Toolbar) findViewById(R.id.main_toolbar);
+        Toolbar myToolbar = findViewById(R.id.main_toolbar);
         setSupportActionBar(myToolbar);
-
-        Button button = (Button) findViewById(R.id.add_cost);
 
     }
 
@@ -48,9 +46,9 @@ public class MainActivity extends AppCompatActivity {
             LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             View layout = inflater.inflate(R.layout.popup,
                     (ViewGroup) findViewById(R.id.popup_1));
-            pw = new PopupWindow(layout, 300, 370, true);
+            pw = new PopupWindow(layout, 500, 500, true);
             pw.showAtLocation(layout, Gravity.CENTER, 0, 0);
-            close = (Button) layout.findViewById(R.id.close_popup);
+            close = layout.findViewById(R.id.close_popup);
             close.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
