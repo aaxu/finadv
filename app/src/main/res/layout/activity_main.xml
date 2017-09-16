@@ -9,7 +9,8 @@
 
     <android.support.v7.widget.Toolbar
         android:id="@+id/main_toolbar"
-        android:layout_width="585dp"
+        android:layout_margin="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginLeft="2dp"
         android:background="?attr/colorPrimary"
@@ -46,7 +47,8 @@
         android:text="Set money for the week"
         android:layout_marginTop="10dp"
         android:layout_below="@+id/money_left"
-        android:layout_centerHorizontal="true"/>
+        android:layout_centerHorizontal="true"
+        android:onClick="set_money_for_week"/>
 
     <Button
         android:id="@+id/loc"

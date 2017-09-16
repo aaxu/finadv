@@ -28,9 +28,10 @@ import com.google.android.gms.tasks.Task;
 
 public class MainActivity extends AppCompatActivity {
 
-    Button close;
-    EditText editText;
-    TextView nonNumberError;
+    private Button close;
+    private EditText editText;
+    private TextView nonNumberError;
+    private TextView moneyLeft;
 
 
     private static final String TAG = "tag";
@@ -58,6 +59,8 @@ public class MainActivity extends AppCompatActivity {
         //Set the toolbar to show on the screen
         Toolbar myToolbar = (Toolbar) findViewById(R.id.main_toolbar);
         setSupportActionBar(myToolbar);
+
+        moneyLeft = (TextView) findViewById(R.id.money_left);
     }
 
     private PopupWindow pw;
@@ -71,6 +74,8 @@ public class MainActivity extends AppCompatActivity {
             nonNumberError = layout.findViewById(R.id.number_format_error_message);
             pw = new PopupWindow(layout, 1250, 750, true);
             pw.showAtLocation(layout, Gravity.CENTER, 0, 0);
+            close.setText("Update Money");
+            editText.setHint("Amount spent");
             close = layout.findViewById(R.id.update_money);
             close.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -80,6 +85,45 @@ public class MainActivity extends AppCompatActivity {
             });
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    protected void set_money_for_week(View v) {
+        try {
+            // We need to get the instance of the LayoutInflater
+            LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+            View layout = inflater.inflate(R.layout.popup,
+                    (ViewGroup) findViewById(R.id.popup_1));
+            editText = layout.findViewById(R.id.money_input);
+            nonNumberError = layout.findViewById(R.id.number_format_error_message);
+            pw = new PopupWindow(layout, 1250, 750, true);
+            pw.showAtLocation(layout, Gravity.CENTER, 0, 0);
+            close = layout.findViewById(R.id.update_money);
+            close.setText("Set money");
+            editText.setHint("Money limit for this week");
+            close.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    setMoney();
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void setMoney() {
+        try {
+            float newMoney = Float.parseFloat(editText.getText().toString().replaceAll("\\$", ""));
+            if (newMoney < 0) {
+                moneyLeft.setText("-$" + String.format("%.2f", Math.abs(newMoney)));
+            } else {
+                moneyLeft.setText("$" + String.format("%.2f", newMoney));
+            }
+            nonNumberError.setText(" ");
+            pw.dismiss();
+        } catch (NumberFormatException e) {
+            nonNumberError.setText("That is not a dollar amount...");
         }
     }
 
@@ -123,15 +167,14 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateMoney(View view) {
         try {
-            TextView textView = findViewById(R.id.money_left);
-            Float moneyRemaining = Float.parseFloat(textView.getText().toString().replaceAll("\\$", ""));
+            Float moneyRemaining = Float.parseFloat(moneyLeft.getText().toString().replaceAll("\\$", ""));
             moneyRemaining -= Float.parseFloat(editText.getText().toString().replaceAll("\\$", ""));
             if (moneyRemaining < 0) {
-                textView.setText("-$" + String.format("%.2f", Math.abs(moneyRemaining)));
+                moneyLeft.setText("-$" + String.format("%.2f", Math.abs(moneyRemaining)));
             } else {
-                textView.setText("$" + String.format("%.2f", moneyRemaining));
+                moneyLeft.setText("$" + String.format("%.2f", moneyRemaining));
             }
-            nonNumberError.setText("That is not a dollar amount...");
+            nonNumberError.setText(" ");
             pw.dismiss();
         } catch (NumberFormatException e) {
             nonNumberError.setText("That is not a dollar amount...");
