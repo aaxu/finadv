@@ -40,6 +40,8 @@ import com.google.android.gms.location.places.Places;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 
+import java.util.List;
+
 public class MainActivity extends AppCompatActivity {
 
     private Button close;
@@ -60,6 +62,8 @@ public class MainActivity extends AppCompatActivity {
     private Context context;
     public static String location;
     public static String prevLocation;
+    public int numTimesOver = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -82,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
                 PreferenceManager.getDefaultSharedPreferences(this);
         data = preferences.edit();
         moneyLeft.setText(preferences.getString("moneyLeft", "$0"));
+        numTimesOver = preferences.getInt("numTimesOver", 0);
         // TODO: Currently does not save color.
 
         getLocationPermission();
@@ -145,11 +150,25 @@ public class MainActivity extends AppCompatActivity {
                 public void onClick(View view) {
                     updateMoney(context);
                     data.putString("moneyLeft", moneyLeft.getText().toString());
+                    data.putInt("numTimesOver", numTimesOver);
                     data.commit();
                 }
             });
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    private void set_sad_message() {
+        TextView sad = findViewById(R.id.sad_message);
+        if (numTimesOver == 0) {
+            sad.setText("");
+        } else if (numTimesOver == 1) {
+            sad.setText("You're going over :(");
+        } else if (numTimesOver == 2) {
+            sad.setText("You're going over!!!! :(");
+        } else {
+            sad.setText(":(((((((((((");
         }
     }
 
@@ -171,6 +190,7 @@ public class MainActivity extends AppCompatActivity {
                 public void onClick(View view) {
                     setMoney(context);
                     data.putString("moneyLeft", moneyLeft.getText().toString());
+                    data.putInt("numTimesOver", numTimesOver);
                     data.commit();
                 }
             });
@@ -182,6 +202,8 @@ public class MainActivity extends AppCompatActivity {
     private void setMoney(Context context) {
         try {
             float newMoney = Float.parseFloat(editText.getText().toString().replaceAll("\\$", ""));
+            numTimesOver = 0;
+            set_sad_message();
             if (newMoney < 0) {
                 moneyLeft.setText("-$" + String.format("%.2f", Math.abs(newMoney)));
                 moneyLeft.setTextColor(ContextCompat.getColor(context, R.color.negative)); //holo_red_dark
@@ -235,9 +257,11 @@ public class MainActivity extends AppCompatActivity {
                             PlaceLikelihood place = task.getResult().get(0);
 
                             location = (String) place.getPlace().getName();
+                            List<Integer> locType = place.getPlace().getPlaceTypes();
                             // Use to determine if the person changed locations
                             // so we don't spam them when they're at the same place.
-                            if (location != prevLocation) {
+                            // Also check if it is a restaurant.
+                            if (location != prevLocation || !locType.contains(new Integer(79))) {
                                 MyJobService.sound = false;
                                 MyJobService.vibrate = false;
                             } else {
@@ -261,10 +285,13 @@ public class MainActivity extends AppCompatActivity {
             if (moneyRemaining < 0) {
                 moneyLeft.setTextColor(ContextCompat.getColor(context, R.color.negative)); //holo_red_dark
                 moneyLeft.setText("-$" + String.format("%.2f", Math.abs(moneyRemaining)));
+                numTimesOver += 1;
             } else {
                 moneyLeft.setText("$" + String.format("%.2f", moneyRemaining));
                 moneyLeft.setTextColor(ContextCompat.getColor(context, R.color.positive)); //holo_red_dark
+                numTimesOver = 0;
             }
+            set_sad_message();
             nonNumberError.setText(" ");
             pw.dismiss();
         } catch (NumberFormatException e) {

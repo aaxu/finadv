@@ -45,9 +45,19 @@
         android:layout_height="wrap_content"
         android:text="Set money for the week"
         android:layout_marginTop="10dp"
-        android:layout_below="@+id/money_left"
+        android:layout_below="@id/money_left"
         android:layout_centerHorizontal="true"
         android:onClick="set_money_for_week"/>
+
+    <TextView
+        android:id="@+id/sad_message"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@id/set_money_button"
+        android:text=""
+        android:textColor="@android:color/holo_blue_dark"
+        android:textSize="40sp" />
 
     <!--<Button-->
         <!--android:id="@+id/loc"-->

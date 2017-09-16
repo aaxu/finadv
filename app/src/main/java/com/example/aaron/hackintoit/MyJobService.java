@@ -26,6 +26,8 @@ public class MyJobService extends JobService {
     private String location;
     private String prevLocation;
     private int count = 0;
+
+    // These values should be false. They are true for now for a live demo.
     public static boolean vibrate = true;
     public static boolean sound = true;
 //    private MainActivity ma = new MainActivity();
