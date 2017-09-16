@@ -3,14 +3,15 @@ package com.example.aaron.hackintoit;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.app.RemoteInput;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.RingtoneManager;
+import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.RemoteInput;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -47,8 +48,6 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
     private boolean mLocationPermissionGranted;
 
-    public static final String KEY_QUICK_REPLY_TEXT = "quick_reply";
-
     // Used for selecting the current place.
     private String mLikelyPlaceNames;
 
@@ -76,14 +75,23 @@ public class MainActivity extends AppCompatActivity {
 
     private void createNotification() {
         PendingIntent pi = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), 0);
-        Notification notification = new NotificationCompat.Builder(this)
+        Notification.Action action = new Notification.Action.Builder(
+                R.drawable.money, "Reply", pi)
+                .addRemoteInput(new RemoteInput.Builder("quick_reply")
+                        .setLabel("Quick reply").build())
+                .build();
+        Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        Notification notification = new Notification.Builder(this)
                 .setTicker(getResources().getString(R.string.app_name))
                 .setSmallIcon(android.R.drawable.ic_menu_report_image)
                 .setContentTitle(getResources().getString(R.string.app_name))
                 .setContentText(getResources().getString(R.string.app_name))
                 .setContentIntent(pi)
                 .setAutoCancel(true)
+                .addAction(action)
                 .build();
+        notification.defaults |= Notification.DEFAULT_SOUND;
+
 
         NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         notificationManager.notify(0, notification);
